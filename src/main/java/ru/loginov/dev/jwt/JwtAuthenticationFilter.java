@@ -1,3 +1,4 @@
+
 package ru.loginov.dev.jwt;
 
 import jakarta.servlet.FilterChain;
@@ -11,10 +12,13 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
+        filterChain.doFilter(request, response);
     }
 }
