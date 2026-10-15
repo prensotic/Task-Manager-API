@@ -15,7 +15,6 @@ import java.util.List;
 
 @Service
 public class JwtService {
-
     private final JwtEncoder jwtEncoder;
 
     public JwtService(JwtEncoder jwtEncoder) {

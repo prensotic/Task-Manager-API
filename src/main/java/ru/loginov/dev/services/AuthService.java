@@ -12,29 +12,20 @@ import ru.loginov.dev.enums.Role;
 
 @Service
 public class AuthService {
-
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
 
-    public AuthService(
-            AuthenticationManager authenticationManager,
-            JwtService jwtService,
-            UserService userService
-    ) {
+    public AuthService(AuthenticationManager authenticationManager, JwtService jwtService, UserService userService) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.userService = userService;
     }
 
     public TokenResponse signIn(SignInRequest request) {
-        Authentication authentication =
-                authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                request.getUsernameOrEmail(),
-                                request.getPassword()
-                        )
-                );
+        Authentication authentication = authenticationManager
+                .authenticate(new UsernamePasswordAuthenticationToken(request.getUsernameOrEmail(),
+                                request.getPassword()));
 
         String token = jwtService.generateToken(authentication);
 
@@ -42,12 +33,10 @@ public class AuthService {
     }
 
     public User signUp(SignUpRequest request) {
-        User user = new User(
-                request.getUsername(),
+        User user = new User(request.getUsername(),
                 request.getEmail(),
                 request.getPassword(),
-                Role.USER
-        );
+                Role.USER);
 
         return userService.create(user);
     }
