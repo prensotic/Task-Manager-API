@@ -36,6 +36,9 @@ public class Project {
     @JoinColumn(name = "user_id", nullable = false)
     private User owner;
 
+    @OneToMany(mappedBy = "project")
+    private List<ProjectUser> members = new ArrayList<>();
+
     public Project() {}
 
     public Project(String title, String description, ProjectStatus projectStatus) {

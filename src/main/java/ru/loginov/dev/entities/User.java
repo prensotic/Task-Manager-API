@@ -38,6 +38,8 @@ public class User {
     @OneToMany(mappedBy = "owner")
     private List<Project> projects = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user")
+    private List<ProjectUser> projectMemberships = new ArrayList<>();
 
     public User() {}
 

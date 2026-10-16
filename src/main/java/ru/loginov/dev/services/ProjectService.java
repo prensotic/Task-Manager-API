@@ -2,10 +2,14 @@ package ru.loginov.dev.services;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.loginov.dev.entities.Project;
+import ru.loginov.dev.entities.ProjectUser;
+import ru.loginov.dev.entities.User;
 import ru.loginov.dev.enums.ProjectStatus;
 import ru.loginov.dev.exceptions.ProjectNotFoundException;
 import ru.loginov.dev.repositories.ProjectRepository;
+import ru.loginov.dev.repositories.ProjectUserRepository;
 
 import java.util.List;
 import java.util.Objects;
@@ -15,10 +19,12 @@ import java.util.Optional;
 public class ProjectService {
     private final ProjectRepository projectRepository;
     private final UserService userService;
+    private final ProjectUserRepository projectUserRepository;
 
-    public ProjectService(ProjectRepository projectRepository, UserService userService) {
+    public ProjectService(ProjectRepository projectRepository, UserService userService, ProjectUserRepository projectUserRepository) {
         this.projectRepository = projectRepository;
         this.userService = userService;
+        this.projectUserRepository = projectUserRepository;
     }
 
     public List<Project> findAllProjects(){
@@ -27,7 +33,7 @@ public class ProjectService {
 
     private Optional<Project> findOptionalProjectById(Long id){
         if(id == null || id <= 0)
-            throw new IllegalArgumentException("Project`s id must be positive");
+            throw new IllegalArgumentException("Project`s ID must not be null or negative");
 
         return projectRepository.findById(id);
     }
@@ -38,6 +44,7 @@ public class ProjectService {
                         new ProjectNotFoundException("Project with ID: " + id + " not found"));
     }
 
+    @Transactional //У нас происходит два обновления бд, как одна атомарная операция
     public Project createProject(Project project){
         if (project == null)
             throw new IllegalArgumentException("Project must not be null");
@@ -51,9 +58,15 @@ public class ProjectService {
         if(project.getProjectStatus() == null)
             throw new IllegalArgumentException("Project`s status must be valid");
 
-        project.setOwner(userService.getCurrentUser()); // Владельцем проекта можем быть только его создатель
+        User owner = userService.getCurrentUser();
 
-        return projectRepository.save(project);
+        project.setOwner(owner); // Владельцем проекта можем быть только его создатель
+
+        Project savedProject = projectRepository.save(project);
+
+        projectUserRepository.save(new ProjectUser(savedProject, owner));
+
+        return savedProject;
     }
 
     public void deleteProject(Long id){
@@ -87,6 +100,15 @@ public class ProjectService {
         project.setDescription(projectUpdateData.getDescription());
 
         return projectRepository.save(project);
+    }
+
+    public List<Project> findAllProjectsForUser(){
+        User user = userService.getCurrentUser();
+
+        return projectUserRepository.findAllByUserId(user.getId())
+                .stream()
+                .map(ProjectUser::getProject)
+                .toList();
     }
 
     private Project getProjectForCurrentUser(Long id) { //Проверка на доступ пользователя к проекту
