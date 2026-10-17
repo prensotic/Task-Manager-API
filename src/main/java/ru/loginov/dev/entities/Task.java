@@ -59,7 +59,6 @@ public class Task {
                 TaskStatus taskStatus,
                 TaskPriority taskPriority,
                 LocalDateTime dueDate,
-                User owner,
                 User assignee,
                 Project project) {
         this.title = title;
@@ -67,7 +66,6 @@ public class Task {
         this.taskStatus = taskStatus;
         this.taskPriority = taskPriority;
         this.dueDate = dueDate;
-        this.owner = owner;
         this.assignee = assignee;
         this.project = project;
     }

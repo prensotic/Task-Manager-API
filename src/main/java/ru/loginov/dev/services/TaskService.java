@@ -2,6 +2,8 @@ package ru.loginov.dev.services;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.loginov.dev.dto.task.TaskRequest;
 import ru.loginov.dev.entities.Project;
 import ru.loginov.dev.entities.Task;
 import ru.loginov.dev.entities.User;
@@ -9,9 +11,11 @@ import ru.loginov.dev.enums.TaskPriority;
 import ru.loginov.dev.enums.TaskStatus;
 import ru.loginov.dev.exceptions.ProjectNotFoundException;
 import ru.loginov.dev.exceptions.TaskNotFoundException;
+import ru.loginov.dev.exceptions.UserNotFoundException;
 import ru.loginov.dev.repositories.ProjectRepository;
 import ru.loginov.dev.repositories.ProjectUserRepository;
 import ru.loginov.dev.repositories.TaskRepository;
+import ru.loginov.dev.repositories.UserRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,15 +27,17 @@ public class TaskService {
     private final ProjectUserRepository projectUserRepository;
     private final ProjectService projectService;
     private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
     public TaskService(TaskRepository taskRepository,
                        UserService userService,
-                       ProjectUserRepository projectUserRepository, ProjectService projectService, ProjectRepository projectRepository) {
+                       ProjectUserRepository projectUserRepository, ProjectService projectService, ProjectRepository projectRepository, UserRepository userRepository) {
         this.taskRepository = taskRepository;
         this.userService = userService;
         this.projectUserRepository = projectUserRepository;
         this.projectService = projectService;
         this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
     }
 
     public List<Task> findAllTasksByProjectId(Long projectId){
@@ -80,10 +86,31 @@ public class TaskService {
         return taskRepository.findById(id);
     }
 
-    public Task findTaskById(Long id){
+    private Task findTaskById(Long id){
         return findOptionalTaskById(id)
                 .orElseThrow(() ->
                         new TaskNotFoundException("Task with ID: " + id + " not found"));
+    }
+
+    public Task findByTaskIdAndProjectId(Long taskId, Long projectId){
+        if(taskId == null || taskId <= 0)
+            throw new IllegalArgumentException("Task`s ID must not be null or negative");
+
+        if(projectId == null || projectId <= 0)
+            throw new IllegalArgumentException("Project`s ID must not be null or negative");
+
+        if(!projectUserRepository.existsByProjectIdAndUserId(projectId, userService.getCurrentUser().getId()))
+            throw new AccessDeniedException("Access os blocked");
+
+        Task task = taskRepository.findByIdAndProjectId(taskId, projectId);
+
+        if (task == null)
+            throw new TaskNotFoundException("Task not found");
+
+        if(task.getAssignee() != null)
+            throw new AccessDeniedException("Access is blocked");
+
+        return task;
     }
 
     public Task createTask(Task task){
@@ -159,7 +186,7 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    public Task updateTask(Long id, Task updateTaskData){
+    public Task updateTask(Long id, TaskRequest updateTaskData){
         if(updateTaskData == null)
             throw new IllegalArgumentException("Task`s data must not be null");
 
@@ -190,5 +217,27 @@ public class TaskService {
             throw new AccessDeniedException("Access id blocked");
 
         taskRepository.delete(task);
+    }
+
+    @Transactional
+    public Task setUserForTask(Long taskId, Long userId){
+        Task task = findTaskById(taskId);
+        User owner = userService.getCurrentUser();
+        Project project = projectService.findProjectById(task.getProject().getId());
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (task.getAssignee() != null)
+            throw new IllegalStateException("Task already has an assignee");
+
+        if(!project.getOwner().getId().equals(owner.getId()))
+            throw new AccessDeniedException("Access is blocked");
+
+        if(!projectUserRepository.existsByProjectIdAndUserId(project.getId(), user.getId()))
+            throw new AccessDeniedException("Access is blocked");
+
+        task.setAssignee(user);
+
+        return taskRepository.save(task);
     }
 }
