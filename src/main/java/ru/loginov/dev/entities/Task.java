@@ -41,8 +41,12 @@ public class Task {
     private LocalDateTime updatedAt;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
+
+    @ManyToOne
+    @JoinColumn(name = "assignee_id", nullable = true)
+    private User assignee;
 
     @ManyToOne
     @JoinColumn(name = "project_id", nullable = false)
@@ -56,6 +60,7 @@ public class Task {
                 TaskPriority taskPriority,
                 LocalDateTime dueDate,
                 User owner,
+                User assignee,
                 Project project) {
         this.title = title;
         this.description = description;
@@ -63,6 +68,7 @@ public class Task {
         this.taskPriority = taskPriority;
         this.dueDate = dueDate;
         this.owner = owner;
+        this.assignee = assignee;
         this.project = project;
     }
 
@@ -136,5 +142,13 @@ public class Task {
 
     public void setProject(Project project) {
         this.project = project;
+    }
+
+    public User getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(User assignee) {
+        this.assignee = assignee;
     }
 }

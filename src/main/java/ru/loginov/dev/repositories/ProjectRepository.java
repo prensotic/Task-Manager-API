@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ProjectRepository extends JpaRepository<Project, Long> {
     List<Project> findAllProjectsByOwnerId(Long ownerId);
+    boolean existsProjectById(Long id);
 }
